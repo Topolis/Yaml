@@ -26,28 +26,21 @@ class Yaml {
     }
 
     protected function process(array $data){
-        array_walk_recursive($data, [$this, 'applyHandlers'], $data);
+
+        array_walk_recursive($data, function(&$item, $key) use (&$data){
+            if(!$item instanceof TaggedValue)
+                return;
+
+            if(!isset($this->handlers[$item->getTag()])){
+                $item = '!'.$item->getTag().' '.$item->getValue();
+                return;
+            }
+
+            $handler = $this->handlers[$item->getTag()];
+            $item = $handler->execute($item->getValue(), $data);
+        });
+
         return $data;
-    }
-
-    /**
-     * @param $item
-     * @param $key
-     * @param $data
-     */
-    protected function applyHandlers(&$item, $key, $data){
-        /* @var TaggedValue $item */
-
-        if(!$item instanceof TaggedValue)
-            return;
-
-        if(!isset($this->handlers[$item->getTag()])){
-            $item = '!'.$item->getTag().' '.$item->getValue();
-            return;
-        }
-
-        $handler = $this->handlers[$item->getTag()];
-        $item = $handler->execute($item->getValue(), $data);
     }
 
 }

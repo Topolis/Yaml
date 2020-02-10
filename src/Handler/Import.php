@@ -33,6 +33,7 @@ class Import implements ITagHandler {
     const MODE_JSON = 'json';
 
     protected $parsers = [];
+    protected static $cache = [];
 
     public function __construct(){
         // Setup default parsers
@@ -45,11 +46,12 @@ class Import implements ITagHandler {
      * @param $mode
      * @param callable $callback
      */
-    public function addParser($mode, callable $callback, $jailpath = false, $parameters = []){
+    public function addParser($mode, callable $callback, $jailpath = false, $parameters = [], $root = false){
         $this->parsers[$mode] = [
             'callback' => $callback,
             'jailpath' => $jailpath,
-            'parameters' => $parameters
+            'parameters' => $parameters,
+            'root' => $root
         ];
     }
 
@@ -88,6 +90,13 @@ class Import implements ITagHandler {
         if(!isset($this->parsers[$mode]))
             throw new \Exception('No parser for mode "'.$mode.'" specified');
 
+        $root = $this->parsers[$mode]['root'];
+        $file = $root ? $root.DIRECTORY_SEPARATOR.$file : $file;
+
+        $cacheKey = md5($file);
+        if(array_key_exists($cacheKey, self::$cache))
+            return self::$cache[$cacheKey];
+
         $jailpath = $this->parsers[$mode]['jailpath'];
         $callback = $this->parsers[$mode]['callback'];
         $parameters = $this->parsers[$mode]['parameters'];
@@ -102,7 +111,9 @@ class Import implements ITagHandler {
         $contents = file_get_contents($file);
         array_unshift($parameters, $contents);
 
-        return call_user_func_array($callback, $parameters);
+        $result =  call_user_func_array($callback, $parameters);
+        self::$cache[$cacheKey] = $result;
+        return $result;
     }
 
     protected function checkJail($path, $jail){
@@ -110,5 +121,9 @@ class Import implements ITagHandler {
         $jail = realpath($jail);
 
         return strpos($path, $jail) === 0;
+    }
+
+    public static function clearCache() {
+        self::$cache = [];
     }
 }

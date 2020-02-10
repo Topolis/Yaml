@@ -54,12 +54,28 @@ class ImportTest extends PHPUnit_Framework_TestCase {
         $handler->addParser('different', function (){return 'different';}, __DIR__.'/../other');
         $handler->addParser('deeper', function (){return 'deeper';}, __DIR__.'/../samples/deeper');
 
+        $handler::clearCache();
         $this->assertEquals('ok1', $handler->execute(__DIR__.'/../samples/test.mock ok1', []));
+        $handler::clearCache();
         $this->assertEquals('ok2', $handler->execute(__DIR__.'/../samples/test.mock ok2', []));
 
         $file = __DIR__.'/../samples/test.mock';
+        $handler::clearCache();
         $this->assertException('Exception','Import file "'.$file.'" is outside jail', function() use ($handler,$file){ $handler->execute($file.' deeper', []); });
+        $handler::clearCache();
         $this->assertException('Exception','Import file "'.$file.'" is outside jail', function() use ($handler,$file){ $handler->execute($file.' different', []); });
+    }
+
+    public function testCache(){
+        $handler = new \Topolis\Yaml\Handler\Import();
+        $handler->addParser('ok1', function (){return 'ok1';}, __DIR__.'/../samples');
+        $handler->addParser('ok2', function (){return 'ok2';}, '/');
+
+        $this->assertEquals('ok1', $handler->execute(__DIR__.'/../samples/test.mock ok1', []));
+        $this->assertEquals('ok1', $handler->execute(__DIR__.'/../samples/test.mock ok2', [])); // Cached ok1
+        $handler::clearCache();
+        $this->assertEquals('ok2', $handler->execute(__DIR__.'/../samples/test.mock ok2', [])); // Uncached ok1
+
     }
 
     // ----------------------------
