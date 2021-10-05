@@ -11,7 +11,7 @@
     ],
     "minimum-stability": "beta",
     "require": {
-        "symfony/yaml": "^4.1",
+        "symfony/yaml": "^4.1|^5.0",
         "ext-openssl": "*"
     },
     "autoload" : {
